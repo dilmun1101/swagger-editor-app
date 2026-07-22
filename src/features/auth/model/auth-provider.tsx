@@ -17,6 +17,12 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children, initialUser }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(initialUser);
+  const [syncedUserId, setSyncedUserId] = useState<string | undefined>(initialUser?.id);
+
+  if (initialUser?.id !== syncedUserId) {
+    setSyncedUserId(initialUser?.id);
+    setUser(initialUser);
+  }
 
   useEffect(() => {
     const supabase = createClient();

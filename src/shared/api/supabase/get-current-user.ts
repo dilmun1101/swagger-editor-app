@@ -4,15 +4,14 @@ import type { User } from '@supabase/supabase-js';
 
 export async function getCurrentUser(): Promise<User | null> {
   const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
+  if (error || !data?.claims) {
     return null;
   }
 
-  return user;
+  return {
+    ...data.claims,
+    id: data.claims.sub,
+  } as unknown as User;
 }
