@@ -18,6 +18,7 @@ export function HomePage() {
   const { user } = useAuth();
   const [rawText, setRawText] = useState('');
   const [isSchemaValid, setIsSchemaValid] = useState(false);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const debouncedText = useDebounce(rawText, DEBOUNCE_DELAY_SIZE_MS);
 
   useEffect(() => {
@@ -26,19 +27,17 @@ export function HomePage() {
     const loadSchema = async () => {
       try {
         const savedSchema = await loadEditorSchema(user.id);
-        if (savedSchema) {
-          setRawText(savedSchema.content);
-        }
+        setRawText(savedSchema?.content ?? '');
       } catch (error) {
         console.error('Failed to load saved schema:', error);
+      } finally {
+        setLoadedUserId(user.id);
       }
     };
 
     void loadSchema();
   }, [user?.id]);
 
-  // Cast is safe: isSchemaValid is driven by Spectral OAS ruleset,
-  // which validates the full OpenAPI structure (info, title, paths, etc.)
   const parsedSchema = useMemo(() => {
     if (!isSchemaValid || !rawText) return null;
 
@@ -46,21 +45,18 @@ export function HomePage() {
   }, [rawText, isSchemaValid]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || user.id !== loadedUserId) return;
 
     const saveSchema = async () => {
       try {
-        await saveEditorSchema({
-          userId: user.id,
-          content: debouncedText,
-        });
+        await saveEditorSchema({ userId: user.id, content: debouncedText });
       } catch (error) {
         console.error('Failed to autosave schema:', error);
       }
     };
 
     void saveSchema();
-  }, [user?.id, debouncedText]);
+  }, [user?.id, loadedUserId, debouncedText]);
 
   return (
     <div className={styles.container}>
